@@ -43,8 +43,8 @@ steps:
   image: docker:19.03.12-dind
   commands:
     - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
-    - docker tag sonarqube quay.io/ukhomeofficedigital/alpine:latest
-    - docker tag sonarqube quay.io/ukhomeofficedigital/alpine:$${DRONE_COMMIT_SHA}
+    - docker tag alpine quay.io/ukhomeofficedigital/alpine:latest
+    - docker tag alpine quay.io/ukhomeofficedigital/alpine:$${DRONE_COMMIT_SHA}
     - docker push quay.io/ukhomeofficedigital/alpine:latest
     - docker push quay.io/ukhomeofficedigital/alpine:$${DRONE_COMMIT_SHA}
   environment:
@@ -65,8 +65,8 @@ steps:
   commands:
   commands:
     - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
-    - docker tag sonarqube quay.io/ukhomeofficedigital/alpine:latest
-    - docker tag sonarqube quay.io/ukhomeofficedigital/alpine:$${DRONE_TAG}
+    - docker tag alpine quay.io/ukhomeofficedigital/alpine:latest
+    - docker tag alpine quay.io/ukhomeofficedigital/alpine:$${DRONE_TAG}
     - docker push quay.io/ukhomeofficedigital/alpine:latest
     - docker push quay.io/ukhomeofficedigital/alpine:$${DRONE_TAG}
   environment:
