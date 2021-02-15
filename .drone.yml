@@ -1,9 +1,4 @@
 ---
-# IMPORTANT: only .drone.yml or .drone.star is needed
-# By default, drone will look for .drone.yml which is expected to contain a yaml definition of the pipeline.
-# It is also possible to define the pipeline in the Starlark language (see https://docs.bazel.build/versions/master/skylark/language.html)
-# When using Starlark, you also need to configure the Drone repo settings and specify "Configuration" as .drone.star
-
 kind: pipeline
 name: default
 type: kubernetes
@@ -15,14 +10,22 @@ platform:
 steps:
 - name: build
   pull: if-not-exists
-  image: docker:19.03.12-dind
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
   commands:
   # wait for docker service to be up before running docker build
-  - n=0; while [ "$n" -lt 60 ] && [ ! -e /var/run/docker.sock ]; do n=$(( n + 1 )); sleep 1; done
+  - n=0; while [ "$n" -lt 60 ] && ! docker stats --no-stream; do n=$(( n + 1 )); sleep 1; done
+  - if ! docker stats --no-stream; then echo "Docker appears not to be running"; exit 1; done
   - docker build -t alpine:$${DRONE_COMMIT_SHA} . --no-cache
-  volumes:
-  - name: dockersock
-    path: /var/run
+  environment:
+    DOCKER_HOST:
+      tcp://docker:2375
+  resources: &minimal
+    requests:
+      cpu: 500
+      memory: 512Mi
+    limits:
+      cpu: 1000
+      memory: 1Gi
   when:
     event:
     - push
@@ -30,8 +33,7 @@ steps:
 
 - name: push_quay_tag
   pull: if-not-exists
-  image: docker:19.03.12-dind
-  commands:
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
   commands:
     - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
     - docker tag alpine quay.io/ukhomeofficedigital/alpine:latest
@@ -41,33 +43,16 @@ steps:
   environment:
     DOCKER_TOKEN:
       from_secret: DOCKER_TOKEN
-  volumes:
-  - name: dockersock
-    path: /var/run
+    DOCKER_HOST:
+      tcp://docker:2375
+  resources: *minimal
   when:
     event:
     - tag
 
 services:
 - name: docker
-  image: docker:19.03.12-dind
-  volumes:
-  - name: dockersock
-    path: /var/run
-
-- name: anchore-submission-server
-  image: docker.digital.homeoffice.gov.uk/acp-anchore-submission:latest
-  commands:
-    - /anchore-submission server
-  environment:
-    ANCHORE_URL: "acp-anchore.acp.homeoffice.gov.uk"
-    REGISTRY_URL: "acp-ephemeral-registry.acp.homeoffice.gov.uk"
-  volumes:
-  - name: dockersock
-    path: /var/run
-
-volumes:
-- name: dockersock
-  temp: {}
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  resources: *minimal
 
 ...
