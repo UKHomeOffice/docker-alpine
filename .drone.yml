@@ -16,9 +16,6 @@ steps:
   - n=0; while [ "$n" -lt 60 ] && ! docker stats --no-stream; do n=$(( n + 1 )); sleep 1; done
   - if ! docker stats --no-stream; then echo "Docker appears not to be running"; exit 1; fi
   - docker build -t alpine:$${DRONE_COMMIT_SHA} . --no-cache
-  environment:
-    DOCKER_HOST:
-      tcp://docker:2375
   resources: &minimal
     requests:
       cpu: 500
@@ -43,8 +40,6 @@ steps:
   environment:
     DOCKER_TOKEN:
       from_secret: DOCKER_TOKEN
-    DOCKER_HOST:
-      tcp://docker:2375
   resources: *minimal
   when:
     event:
