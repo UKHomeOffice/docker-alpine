@@ -25,7 +25,7 @@ steps:
       memory: 1024Mi
   commands:
   # wait for docker service to be up before running docker build
-  - n=0; while [ "$n" -lt 60 ] && ! "$(docker stats --no-stream)"; do n=$(( n + 1 )); sleep 1; done
+  - n=0; while [ "$n" -lt 60 ] && [ ! "$(docker stats --no-stream)" ]; do n=$(( n + 1 )); sleep 1; done
   - docker build -t "$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
   - docker tag "$${OCI_IMAGE_REPO}:$$(cat .semver)" "$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
   when:
@@ -44,7 +44,7 @@ steps:
       cpu: 100
       memory: 256Mi
   commands:
-  - n=0; while [ "$n" -lt 60 ] && ! "$(docker stats --no-stream)"; do n=$(( n + 1 )); sleep 1; done
+  - n=0; while [ "$n" -lt 60 ] && [ ! "$(docker stats --no-stream)" ]; do n=$(( n + 1 )); sleep 1; done
   - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
   - docker pull $${OCI_IMAGE_REPO}:$$(cat .alpine_version)
   - docker tag $${OCI_IMAGE_REPO}:$$(cat .alpine_version) $${OCI_IMAGE_REPO}:latest
