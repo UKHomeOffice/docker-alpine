@@ -26,8 +26,8 @@ steps:
   commands:
   # wait for docker service to be up before running docker build
   - n=0; while [ "$n" -lt 60 ] && [ ! "$(docker stats --no-stream)" ]; do n=$(( n + 1 )); sleep 1; done
-  - docker build -t "$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
-  - docker tag "$${OCI_IMAGE_REPO}:$$(cat .semver)" "$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
+  - docker build --build-arg ALPINE_TAG=$$(cat .alpine_version) -t "$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
+  - docker tag "$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" "$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
   when:
     event:
       include:
