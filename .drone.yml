@@ -18,7 +18,7 @@ environment:
 steps:
 - name: build
   pull: Always
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
   resources:
     limits:
       cpu: 1000
@@ -38,12 +38,13 @@ steps:
 
 - name: Promote tag to Latest (Quay)
   pull: Always
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
   resources:
     limits:
       cpu: 100
       memory: 256Mi
   commands:
+  - n=0; while [ "$n" -lt 60 ] && ! "$(docker stats --no-stream &>/dev/null)"; do n=$(( n + 1 )); sleep 1; done
   - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
   - docker pull $${OCI_IMAGE_REPO}:$$(cat .alpine_version)
   - docker tag $${OCI_IMAGE_REPO}:$$(cat .alpine_version) $${OCI_IMAGE_REPO}:latest
@@ -73,7 +74,7 @@ steps:
 
 - name: Push image tag to quay
   pull: Always
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
   resources:
     limits:
       cpu: 100
