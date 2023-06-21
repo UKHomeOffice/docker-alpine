@@ -1,5 +1,15 @@
-FROM alpine:3.15
+ARG ALPINE_TAG
+FROM $ALPINE_TAG
 
-RUN adduser -D -u 1001 alpine
+ARG USER=alpine
+ARG UID=1001
 
-USER 1001
+RUN set -euxo pipefail ;\
+  # Create non-Root user
+  adduser \
+  -D \
+  -g "" \
+  -u "$UID" \
+  "$USER" ;
+
+USER $UID
