@@ -18,7 +18,7 @@ environment:
 steps:
 - name: build
   pull: Always
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
   resources:
     limits:
       cpu: 1000
@@ -38,7 +38,7 @@ steps:
 
 - name: Promote tag to Latest (Quay)
   pull: Always
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
   resources:
     limits:
       cpu: 100
@@ -74,7 +74,7 @@ steps:
 
 - name: Push image tag to quay
   pull: Always
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
   resources:
     limits:
       cpu: 100
