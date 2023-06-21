@@ -13,7 +13,9 @@ resources:
     memory: 1024Mi
 
 environment:
-  OCI_IMAGE_REPO: quay.io/ukhomeofficedigital/alpine
+  OCI_REGISTRY: quay.io
+  OCI_IMAGE_REPO: ukhomeofficedigital/alpine
+  OCI_REPO_USERNAME: ukhomeofficedigital+alpine
 
 steps:
 - name: build
@@ -26,8 +28,8 @@ steps:
   commands:
   # wait for docker service to be up before running docker build
   - /usr/local/bin/wait
-  - docker build --build-arg ALPINE_TAG=$$(cat .alpine_version) -t "$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
-  - docker tag "$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" "$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
+  - docker build --build-arg ALPINE_TAG=$$(cat .alpine_version) -t "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
+  - docker tag "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" "$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
   when:
     event:
       include:
@@ -46,12 +48,12 @@ steps:
   commands:
   # wait for docker service to be up before running docker build
   - /usr/local/bin/wait
-  - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
-  - docker pull $${OCI_IMAGE_REPO}:$$(cat .alpine_version)
-  - docker tag $${OCI_IMAGE_REPO}:$$(cat .alpine_version) $${OCI_IMAGE_REPO}:latest
-  - docker push $${OCI_IMAGE_REPO}:latest
+  - docker login -u="$${OCI_REPO_USERNAME}" -p=$${OCI_REPO_TOKEN} $${OCI_REGISTRY}
+  - docker pull $${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)
+  - docker tag $${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version) $${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:latest
+  - docker push $${OCI_REGISTRY}/$${OCI_IMAGE_REPO} --all-tags
   environment:
-    DOCKER_TOKEN:
+    OCI_REPO_TOKEN:
       from_secret: DOCKER_TOKEN
   when:
     ref:
@@ -81,11 +83,10 @@ steps:
       cpu: 100
       memory: 256Mi
   commands:
-  - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
-  - docker push $${OCI_IMAGE_REPO}:$$(cat .alpine_version)
-  - docker push $${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}
+  - docker login -u="$${OCI_REPO_USERNAME}" -p=$${OCI_REPO_TOKEN} $${OCI_REGISTRY}
+  - docker push $${OCI_REGISTRY}/$${OCI_IMAGE_REPO} --all-tags
   environment:
-    DOCKER_TOKEN:
+    OCI_REPO_TOKEN:
       from_secret: DOCKER_TOKEN
   when:
     branch:
