@@ -29,7 +29,7 @@ steps:
   # wait for docker service to be up before running docker build
   - /usr/local/bin/wait
   - docker build --build-arg ALPINE_TAG=$$(cat .alpine_version) -t "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
-  - docker tag "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" "$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
+  - docker tag "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
   when:
     event:
       include:
