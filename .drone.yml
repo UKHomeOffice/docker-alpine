@@ -7,52 +7,116 @@ platform:
   os: linux
   arch: amd64
 
+resources:
+  requests:
+    cpu: 1000
+    memory: 1024Mi
+
+environment:
+  OCI_REGISTRY: quay.io
+  OCI_IMAGE_REPO: ukhomeofficedigital/alpine
+  OCI_REPO_USERNAME: ukhomeofficedigital+alpine
+
 steps:
 - name: build
-  pull: if-not-exists
+  pull: Always
   image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
-  commands:
-  # wait for docker service to be up before running docker build
-  - n=0; while [ "$n" -lt 60 ] && ! docker stats --no-stream; do n=$(( n + 1 )); sleep 1; done
-  - if ! docker stats --no-stream; then echo "Docker appears not to be running"; exit 1; fi
-  - docker build -t alpine:$${DRONE_COMMIT_SHA} . --no-cache
-  resources: &minimal
-    requests:
-      cpu: 500
-      memory: 512Mi
+  resources:
     limits:
       cpu: 1000
-      memory: 1Gi
+      memory: 1024Mi
+  commands:
+  # wait for docker service to be up before running docker build
+  - /usr/local/bin/wait
+  - docker build --build-arg ALPINE_TAG=$$(cat .alpine_version) -t "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" . --no-cache
+  - docker tag "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)" "$${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:${DRONE_COMMIT_SHA}"
   when:
+    event:
+      include:
+      - push
+      - pull_request
+      exclude:
+      - promote
+
+- name: Promote tag to Latest (Quay)
+  pull: Always
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  resources:
+    limits:
+      cpu: 100
+      memory: 256Mi
+  commands:
+  # wait for docker service to be up before running docker build
+  - /usr/local/bin/wait
+  - docker login -u="$${OCI_REPO_USERNAME}" -p=$${OCI_REPO_TOKEN} $${OCI_REGISTRY}
+  - docker pull $${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version)
+  - docker tag $${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:$$(cat .alpine_version) $${OCI_REGISTRY}/$${OCI_IMAGE_REPO}:latest
+  - docker push $${OCI_REGISTRY}/$${OCI_IMAGE_REPO} --all-tags
+  environment:
+    OCI_REPO_TOKEN:
+      from_secret: DOCKER_TOKEN
+  when:
+    ref:
+    - refs/tags/**
+    event:
+    - promote
+
+- name: scan-image
+  pull: Always
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+  resources:
+    limits:
+      cpu: 1000
+      memory: 1024Mi
+  environment:
+    IMAGE_NAME: quay.io/ukhomeofficedigital/alpine:${DRONE_COMMIT_SHA}
+  when:
+    event:
+    - pull_request
+    - push
+
+- name: Push image tag to quay
+  pull: Always
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+  resources:
+    limits:
+      cpu: 100
+      memory: 256Mi
+  commands:
+  - docker login -u="$${OCI_REPO_USERNAME}" -p=$${OCI_REPO_TOKEN} $${OCI_REGISTRY}
+  - docker push $${OCI_REGISTRY}/$${OCI_IMAGE_REPO} --all-tags
+  environment:
+    OCI_REPO_TOKEN:
+      from_secret: DOCKER_TOKEN
+  when:
+    branch:
+    - main
+    event:
+      include:
+      - push
+      exclude:
+      - promote
+
+- name: Push Semver and Tag Repo - force
+  pull: Always
+  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/acp-ci-tools
+  resources:
+    limits:
+      cpu: 100
+      memory: 256Mi
+  commands:
+  - git tag -a $(cat .alpine_version) -m "[CI SKIP] - alpine tag - $(cat .alpine_version)"
+  - git push -f --tags
+  when:
+    branch:
+    - main
     event:
     - push
-    - tag
-
-- name: push_quay_tag
-  pull: if-not-exists
-  image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
-  commands:
-    - docker login -u="ukhomeofficedigital+alpine" -p=$${DOCKER_TOKEN} quay.io
-    - docker tag alpine:$${DRONE_COMMIT_SHA} quay.io/ukhomeofficedigital/alpine:latest
-    - docker tag alpine:$${DRONE_COMMIT_SHA} quay.io/ukhomeofficedigital/alpine:$${DRONE_TAG}
-    - docker push quay.io/ukhomeofficedigital/alpine:latest
-    - docker push quay.io/ukhomeofficedigital/alpine:$${DRONE_TAG}
-  environment:
-    DOCKER_TOKEN:
-      from_secret: DOCKER_TOKEN
-  resources: *minimal
-  when:
-    event:
-    - tag
 
 services:
 - name: docker
   image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
-  resources: *minimal
-
-trigger:
-  event:
-  - push
-  - tag
-
-...
+  resources:
+    limits:
+      cpu: 1000
+      memory: 1024Mi
